@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"os"
 	"strings"
 	"time"
 
@@ -16,7 +17,12 @@ type OpenrouterProvider struct {
 
 func NewOpenrouterProvider(apiKey string) *OpenrouterProvider {
 	config := openai.DefaultConfig(apiKey)
-	config.BaseURL = "https://openrouter.ai/api/v1/" // Custom endpoint if needed
+	endpoint, ok := os.LookupEnv("OPENAI_ENDPOINT")
+	if !ok {
+		config.BaseURL = "https://openrouter.ai/api/v1/" // Custom endpoint if needed
+	} else {
+		config.BaseURL = endpoint
+	}
 	return &OpenrouterProvider{
 		client:     openai.NewClientWithConfig(config),
 		modelNames: []string{},
@@ -24,11 +30,16 @@ func NewOpenrouterProvider(apiKey string) *OpenrouterProvider {
 }
 
 func (o *OpenrouterProvider) Chat(messages []openai.ChatCompletionMessage, modelName string) (openai.ChatCompletionResponse, error) {
+	effort := ""
+	if strings.HasPrefix(modelName, "o") {
+		effort = "high"
+	}
 	// Create a chat completion request
 	req := openai.ChatCompletionRequest{
-		Model:    modelName,
-		Messages: messages,
-		Stream:   false,
+		Model:           modelName,
+		Messages:        messages,
+		Stream:          false,
+		ReasoningEffort: effort,
 	}
 
 	// Call the OpenAI API to get a complete response
@@ -42,11 +53,16 @@ func (o *OpenrouterProvider) Chat(messages []openai.ChatCompletionMessage, model
 }
 
 func (o *OpenrouterProvider) ChatStream(messages []openai.ChatCompletionMessage, modelName string) (*openai.ChatCompletionStream, error) {
+	effort := ""
+	if strings.HasPrefix(modelName, "o") {
+		effort = "high"
+	}
 	// Create a chat completion request
 	req := openai.ChatCompletionRequest{
-		Model:    modelName,
-		Messages: messages,
-		Stream:   true,
+		Model:           modelName,
+		Messages:        messages,
+		Stream:          true,
+		ReasoningEffort: effort,
 	}
 
 	// Call the OpenAI API to get a streaming response
